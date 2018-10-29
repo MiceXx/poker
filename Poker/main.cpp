@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
 	holdem.newGame();
 
 	std::cin.get();
+	std::cin.get();
 	return 0;
 	
 }

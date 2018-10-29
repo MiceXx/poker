@@ -105,24 +105,28 @@ void Holdem::bettingRound() {
 
 	std::cout << "Start betting.. " << std::endl;
 	while(counter < nPlayers) {
-		Player player = _players[idx];
+		Player& player = _players[idx];
 		bool done = false;
 		if (!player.isPlaying() || player.isAllin()) {
 			counter++;
 			continue;
 		}
-		std::string optionsText = "\nChoose an action:\nb-bet\nc-call\nk-check\nf-fold";
+
 		std::cout << "Player " << idx << "'s turn" << std::endl;
+		std::cout << "You have: " << player.getChipCount() << "chips" << std::endl;
+		std::cout << "Current Bet is: " << currentBet << "chips" << std::endl;
+		std::string optionsText = "\nChoose an action:\nb-bet\nc-call\nk-check\nf-fold";
 		std::cout << optionsText << std::endl;
 		while (!done) {
 			std::cin >> move;
 			switch (move) {
 			case 'b':
-				counter = 0;
 				std::cout << "Enter your bet amount:" << std::endl;
 				std::cin >> betAmount;
 				if (betAmount > currentBet && player.loseChips(betAmount)) {
 					currentBet = betAmount;
+					playerBets[idx] += betAmount;
+					counter = 1;
 					if (player.isAllin()) {
 						std::cout << "Player " << idx << " goes all in for " << betAmount << std::endl;
 					}
@@ -140,7 +144,11 @@ void Holdem::bettingRound() {
 				}
 				break;
 			case 'c':
-				if (player.loseChips(currentBet)) {
+				if (currentBet == 0) {
+					std::cout << "==Invalid Move, Bet is zero==" << optionsText << std::endl;
+				}
+				else if (player.loseChips(currentBet)) {
+					playerBets[idx] += currentBet;
 					if (player.isAllin()) {
 						std::cout << "Player " << idx << " goes all in for " << betAmount << std::endl;
 					}
@@ -148,10 +156,12 @@ void Holdem::bettingRound() {
 						std::cout << "Player " << idx << " calls " << betAmount << std::endl;
 					}
 					done = true;
+					counter++;
 				}
 				else {
 					int allInAmount = player.goAllIn();
 					std::cout << "Player " << idx << " goes all in for " << allInAmount << std::endl;
+					done = true;
 				}
 				break;
 			case 'k':
@@ -173,11 +183,7 @@ void Holdem::bettingRound() {
 				std::cout << "==Invalid Input==" << optionsText << std::endl;
 				break;
 			}
-			if(!done) idx = (idx+1) % nPlayers;
-		}
-		if (_players[idx].isPlaying()) {
-			Card card = _deck->getNextCard();
-			_players[idx].addCard(card);
+			if(done) idx = (idx+1) % nPlayers;
 		}
 
 		//update the pot size
@@ -240,7 +246,12 @@ std::vector<int> Holdem::showDown() {
 			split = false;
 		}
 		else if (bestHands[i].getHiScore() == winnerVal) {
-			split = true;
+			if (bestHands[i] > bestHands[winnerPos]) {
+				winnerPos = i;
+			}
+			else if (bestHands[i] == bestHands[winnerPos]) {
+				split = true;
+			}
 		}
 	}
 	if (split) {
@@ -294,6 +305,7 @@ void Holdem::distributeWinnings(std::vector<int> winnersArray) {
 	for (size_t i = 0; i <n; i++) {
 		int idx = winnersArray[i];
 		_players[idx].winChips(_pot / n);
+		std::cout << "Player " << idx << " wins " << _pot / n << " chips!" << std::endl;
 	}
 	_pot = 0;
 }
